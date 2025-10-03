@@ -179,12 +179,11 @@ curl http://localhost:4000/v1/campeonatos/2013/partidas
 POST /broadcast
 ```
 Sends a notification to fans of a team.  
-🔒 Protected (JWT Required)
-
+🔒 Protected (JWT Required) 
+   The broadcast endpoint can be used only for admin that is the first user being created at the endpoint /user
 ```bash
 curl -X POST http://localhost:4000/broadcast   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"tipo":"inicio","time":"Flamengo","mensagem":"O jogo vai começar!"}'
 ```
-
 ---
 
 ### 🩺 System
