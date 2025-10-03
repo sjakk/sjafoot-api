@@ -5,11 +5,13 @@ SJAFoot is a backend RESTful API built with Go for managing football (soccer) ch
 ## Features
 
 -   **JWT Authentication**: Secure endpoints for user registration and login.
+-   **Role-Based Access**: Admin-only endpoints for protected actions like broadcasting.
 -   **External API Integration**: Fetches championship and match data from `api-football-data.org`.
 -   **Fan Registration**: Allows users to register their favorite team to receive notifications.
 -   **Broadcast System**: A protected endpoint to simulate sending notifications to registered fans of a specific team.
 -   **Database Migrations**: Uses `golang-migrate` for version-controlled schema management.
 -   **Dockerized Environment**: Fully containerized with Docker Compose for easy setup and consistent deployment.
+-   **Integration Test Suite**: A comprehensive test suite to ensure API reliability.
 
 ## Technology Stack
 
@@ -91,6 +93,45 @@ This is the simplest and most reliable method. It sets up the Go application and
         -port=4000 \
         -db-dsn="postgres://sjafoot_user:yourpassword@localhost/sjafoot?sslmode=disable" \
         -jwt-secret="a-very-strong-and-secret-key-that-is-long-and-secure"
+    ```
+---
+
+## Running Tests
+
+You can run the full integration test suite using either Docker or your local Go installation.
+
+### With Docker (Recommended)
+
+This is the easiest way to run the tests as it spins up a clean, isolated database instance automatically.
+
+1.  **Ensure Docker is running.**
+2.  From the root of the project, run the following command:
+    ```sh
+    docker-compose up --build api-tests
+    ```
+    This command will build the test image, start the database, run all tests, and then exit. The test results will be printed to your console.
+
+### Locally (Without Docker)
+
+1.  **Create a Test Database**
+
+    Make sure your local PostgreSQL server is running. The tests require a separate, clean database named `sjafoot_test`.
+    ```sql
+    -- In psql
+    CREATE DATABASE sjafoot_test WITH OWNER = sjafoot_user;
+    \c sjafoot_test
+    CREATE EXTENSION IF NOT EXISTS citext;
+    ```
+
+2.  **Run the Test Command**
+
+    From the root of the project, run the following commands:
+    ```sh
+    # Navigate to the API directory
+    cd cmd/api
+
+    # Run the tests, providing the test database DSN as an environment variable
+    SJAFOOT_DB_DSN='postgres://sjafoot_user:yourpassword@localhost/sjafoot_test?sslmode=disable' go test -v
     ```
 
 ---
