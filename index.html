@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela do Campeonato</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background-color: #f0f2f5;
+            padding-top: 50px;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .hidden {
+            display: none;
+        }
+        #partidas-container {
+            margin-top: 30px;
+        }
+        #partidas-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        #partidas-list li {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        #partidas-list li:last-child {
+            border-bottom: none;
+        }
+        h2, h3 {
+            text-align: center;
+            margin: 0;
+        }
+        h3 {
+            color: #666;
+            font-weight: 400;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Tabela do Campeonato</h1>
+    
+    <div class="form-group">
+        <label for="jwt-token-input">Token JWT</label>
+        <input type="text" id="jwt-token-input" placeholder="Cole seu token JWT aqui">
+    </div>
+    <div class="form-group">
+        <label for="campeonato-select">Selecione o campeonato *</label>
+        <select id="campeonato-select">
+            <option value="">Insira um token para começar</option>
+        </select>
+    </div>
+
+    <div id="filters-container" class="hidden">
+        <div class="form-group">
+            <label for="equipe-select">Selecione a Equipe</label>
+            <select id="equipe-select">
+                <option value="todas">Todas</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="rodada-select">Selecione a rodada</label>
+            <select id="rodada-select">
+                <option value="todas">Todas</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="partidas-container" class="hidden">
+        <h2 id="campeonato-title"></h2>
+        <h3 id="rodada-title"></h3>
+        <ul id="partidas-list"></ul>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const API_BASE_URL = 'http://localhost:4000';
+    
+
+    // Global state to store fetched data
+    let allMatches = [];
+    let selectedChampionship = {};
+
+    // --- DOM Elements ---
+    const jwtInput = document.getElementById('jwt-token-input');
+    const campeonatoSelect = document.getElementById('campeonato-select');
+    const equipeSelect = document.getElementById('equipe-select');
+    const rodadaSelect = document.getElementById('rodada-select');
+    const filtersContainer = document.getElementById('filters-container');
+    const partidasContainer = document.getElementById('partidas-container');
+    const partidasList = document.getElementById('partidas-list');
+    const campeonatoTitle = document.getElementById('campeonato-title');
+    const rodadaTitle = document.getElementById('rodada-title');
+
+    // --- API Fetch Functions ---
+
+    // --- MODIFIED: fetchCampeonatos now reads from the input field ---
+    async function fetchCampeonatos() {
+        const token = jwtInput.value;
+        if (!token) {
+            campeonatoSelect.innerHTML = '<option value="">Insira um token JWT para começar</option>';
+            return;
+        }
+
+        campeonatoSelect.innerHTML = '<option value="">Carregando...</option>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/v1/campeonatos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const campeonatos = await response.json();
+
+            campeonatoSelect.innerHTML = '<option value="">Selecione um campeonato</option>';
+            campeonatos.forEach(camp => {
+                const option = document.createElement('option');
+                option.value = camp.id;
+                option.textContent = `${camp.nome} (${camp.temporada})`;
+                option.dataset.name = camp.nome;
+                campeonatoSelect.appendChild(option);
+            });
+        } catch (error) {
+            campeonatoSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+            console.error('Failed to fetch championships:', error);
+            alert('Falha ao carregar campeonatos. Verifique o console e se o token JWT é válido.');
+        }
+    }
+
+    async function fetchPartidas(campeonatoId) {
+        partidasContainer.classList.add('hidden');
+        filtersContainer.classList.add('hidden');
+        if (!campeonatoId) return;
+
+        const token = jwtInput.value;
+        if (!token) {
+            alert('Por favor, insira um token JWT.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/v1/campeonatos/${campeonatoId}/partidas`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const data = await response.json();
+            // Assuming the API might return just an array, or an object with a 'partidas' key
+            allMatches = data.partidas || data;
+            
+            populateFiltros();
+            renderPartidas();
+            filtersContainer.classList.remove('hidden');
+        } catch (error) {
+            console.error(`Failed to fetch matches for championship ${campeonatoId}:`, error);
+            alert('Falha ao carregar partidas.');
+        }
+    }
+
+    // --- UI Update Functions ---
+    function populateFiltros() { /* ... function content is the same ... */ 
+        if (allMatches.length === 0) return;
+        const equipes = new Set();
+        const rodadas = new Set();
+        allMatches.forEach(partida => {
+            equipes.add(partida.time_casa);
+            equipes.add(partida.time_fora);
+            if(partida.rodada) rodadas.add(partida.rodada);
+        });
+        equipeSelect.innerHTML = '<option value="todas">Todas</option>';
+        [...equipes].sort().forEach(equipe => {
+            const option = document.createElement('option');
+            option.value = equipe;
+            option.textContent = equipe;
+            equipeSelect.appendChild(option);
+        });
+        rodadaSelect.innerHTML = '<option value="todas">Todas</option>';
+        if (rodadas.size > 0) {
+             [...rodadas].sort((a, b) => a - b).forEach(rodada => {
+                const option = document.createElement('option');
+                option.value = rodada;
+                option.textContent = `${rodada}ª Rodada`;
+                rodadaSelect.appendChild(option);
+            });
+             rodadaSelect.parentElement.classList.remove('hidden');
+        } else {
+            rodadaSelect.parentElement.classList.add('hidden');
+        }
+    }
+    function renderPartidas() { /* ... function content is the same ... */ 
+        const selectedEquipe = equipeSelect.value;
+        const selectedRodada = rodadaSelect.value;
+        let filteredMatches = allMatches;
+        if (selectedEquipe !== 'todas') {
+            filteredMatches = filteredMatches.filter(p => p.time_casa === selectedEquipe || p.time_fora === selectedEquipe);
+        }
+        if (selectedRodada !== 'todas') {
+            filteredMatches = filteredMatches.filter(p => p.rodada == selectedRodada);
+            rodadaTitle.textContent = `${selectedRodada}ª Rodada`;
+        } else {
+             rodadaTitle.textContent = 'Todas as Rodadas';
+        }
+        partidasList.innerHTML = '';
+        if (filteredMatches.length === 0) {
+            partidasList.innerHTML = '<li>Nenhuma partida encontrada com os filtros selecionados.</li>';
+        } else {
+            filteredMatches.forEach(partida => {
+                const li = document.createElement('li');
+                li.textContent = `${partida.time_casa} ${partida.placar} ${partida.time_fora}`;
+                partidasList.appendChild(li);
+            });
+        }
+        campeonatoTitle.textContent = selectedChampionship.name;
+        partidasContainer.classList.remove('hidden');
+    }
+
+    // --- Event Listeners ---
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        // Load token from browser's local storage if it exists
+        const savedToken = localStorage.getItem('jwtToken');
+        if (savedToken) {
+            jwtInput.value = savedToken;
+            // Automatically try to fetch championships if a token is loaded
+            fetchCampeonatos();
+        }
+    });
+
+    // Save token to local storage whenever it's changed and re-fetch championships
+    jwtInput.addEventListener('input', () => {
+        localStorage.setItem('jwtToken', jwtInput.value);
+        // We can also trigger a re-fetch here, or let the user do it manually.
+        // Let's re-fetch automatically if the token seems valid.
+        if (jwtInput.value.length > 20) { // Simple check
+             fetchCampeonatos();
+        }
+    });
+
+    // Fetch matches when a championship is selected
+    campeonatoSelect.addEventListener('change', (event) => {
+        const selectedOption = event.target.options[event.target.selectedIndex];
+        selectedChampionship = { id: selectedOption.value, name: selectedOption.dataset.name };
+        fetchPartidas(selectedChampionship.id);
+    });
+
+    // Re-render the list when a filter changes
+    equipeSelect.addEventListener('change', renderPartidas);
+    rodadaSelect.addEventListener('change', renderPartidas);
+
+</script>
+
+</body>
+</html>

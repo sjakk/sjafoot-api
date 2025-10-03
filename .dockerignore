@@ -1,0 +1,13 @@
+# Git files
+.git
+.gitignore
+
+# IDE / OS files
+.idea
+*.DS_Store
+
+# Secrets and local config
+*.env
+
+# Compiled binary (we will compile it inside Docker)
+/bin

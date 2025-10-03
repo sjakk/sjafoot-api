@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 1. The PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. The Go API Service
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy # This waits for the DB healthcheck to pass
+
+    environment:
+      - DB_DSN=postgres://${DB_USER}:${DB_PASSWORD}@db/${DB_NAME}?sslmode=disable
+    command: 
+      - "./main"
+      - "-port=4000"
+      - "-jwt-secret=${JWT_SECRET}"
+
+  api-tests:
+    build:
+      context: .
+      target: test
+    depends_on:
+      db:
+        condition: service_healthy # Also depends on the DB being ready
+    environment:
+      # Connects to the TEST database inside the same DB container
+      - SJAFOOT_DB_DSN=postgres://${DB_USER}:${DB_PASSWORD}@db/sjafoot_test?sslmode=disable
+    command:
+      # Overrides the default CMD to run the tests instead of the server
+      - "go"
+      - "test"
+      - "-v"
+      - "./cmd/api/..."
+
+volumes:
+  postgres_data:
