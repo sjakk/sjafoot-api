@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/main ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./app/main ./cmd/api
 
 FROM alpine:latest
 
@@ -15,7 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/migrations ./migrations
 
-COPY --from=builder /app/bin/main .
+COPY --from=builder /app/main .
 
 EXPOSE 4000
 
