@@ -1,207 +1,254 @@
-# ⚽ SJAFoot API
+# SJAFoot API
 
-**SJAFoot** is a backend **RESTful API** built with Go for managing football (soccer) championship data, user authentication, and fan notifications.  
-It integrates with the [Football Data API](https://www.football-data.org/) to provide real-time match and competition data.  
+SJAFoot is a backend RESTful API built with Go for managing football (soccer) championship data, user authentication, and fan notifications. It interfaces with an external API to provide real-time match and competition data.
 
----
+## Features
 
-## ✨ Features
+-   **JWT Authentication**: Secure endpoints for user registration and login.
+-   **External API Integration**: Fetches championship and match data from `api-football-data.org`.
+-   **Fan Registration**: Allows users to register their favorite team to receive notifications.
+-   **Broadcast System**: A protected endpoint to simulate sending notifications to registered fans of a specific team.
+-   **Database Migrations**: Uses `golang-migrate` for version-controlled schema management.
+-   **Dockerized Environment**: Fully containerized with Docker Compose for easy setup and consistent deployment.
 
-- 🔐 **JWT Authentication** — Secure endpoints for user registration and login  
-- 🌍 **External API Integration** — Fetches championships and matches from `api.football-data.org`  
-- 🙌 **Fan Registration** — Users can register their favorite team to receive notifications  
-- 📢 **Broadcast System** — Simulate notifications to fans of a specific team (protected endpoint)  
-- 📂 **Database Migrations** — Managed with `golang-migrate`  
-- 🐳 **Dockerized Environment** — Easy setup & consistent deployment with Docker Compose  
+## Technology Stack
 
----
+-   **Backend**: Go
+-   **Database**: PostgreSQL
+-   **Routing**: `julienschmidt/httprouter`
+-   **Migrations**: `golang-migrate/migrate`
+-   **Authentication**: JWT (`golang-jwt/jwt`)
+-   **Containerization**: Docker & Docker Compose
 
-## 🛠 Technology Stack
+## Prerequisites
 
-- **Backend:** Go  
-- **Database:** PostgreSQL  
-- **Routing:** [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter)  
-- **Migrations:** [golang-migrate/migrate](https://github.com/golang-migrate/migrate)  
-- **Authentication:** [golang-jwt/jwt](https://github.com/golang-jwt/jwt)  
-- **Containerization:** Docker & Docker Compose  
+-   Docker
+-   Docker Compose
 
----
-
-## ⚡ Prerequisites
-
-- 🐳 Docker  
-- 📦 Docker Compose  
-
-For **local development without Docker**, you will also need:  
-
-- 🐹 Go `1.22+`  
-- 🐘 PostgreSQL  
-- 🔄 migrate-cli  
+For local development without Docker, you will also need:
+-   Go (version 1.22+)
+-   PostgreSQL
+-   [migrate-cli](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
 
 ---
 
-## 🚀 Running the Application
+## Running the Application
 
-You can run the API in two ways: **with Docker (recommended)** or **locally**.
+There are two ways to run the application: with Docker (recommended) or locally.
 
-### ▶️ Running with Docker (Recommended)
+### Running with Docker (Recommended)
 
-1. **Create an Environment File**  
-   Create a `.env` file in the project root and copy the contents from `.env.example`:  
+This is the simplest and most reliable method. It sets up the Go application and the PostgreSQL database automatically.
 
-   ```env
-   # PostgreSQL Credentials
-   DB_USER=sjafoot_user
-   DB_PASSWORD=yourpassword
-   DB_NAME=sjafoot
+1.  **Create an Environment File**
 
-   # JWT Secret
-   JWT_SECRET=a-very-strong-and-secret-key-that-is-long-and-secure
-   ```
+    Create a file named `.env` in the root of the project and copy the contents from the `.env.example` below.
 
-2. **Build & Run**  
+    `.env.example`
+    ```env
+    # PostgreSQL Credentials
+    DB_USER=sjafoot_user
+    DB_PASSWORD=yourpassword
+    DB_NAME=sjafoot
 
-   ```bash
-   docker-compose up --build
-   ```
+    # JWT Secret
+    JWT_SECRET=a-very-strong-and-secret-key-that-is-long-and-secure
+    ```
 
-   The API will be available at 👉 **http://localhost:4000**
+2.  **Build and Run**
 
----
+    Open your terminal in the project root and run:
+    ```sh
+    docker-compose up --build
+    ```
+    The API will be available at `http://localhost:4000`.
 
-### ▶️ Running Locally (Without Docker)
+### Running Locally (Without Docker)
 
-1. **Start PostgreSQL**  
+1.  **Start PostgreSQL**
 
-   ```sql
-   CREATE ROLE sjafoot_user WITH LOGIN PASSWORD 'yourpassword';
-   CREATE DATABASE sjafoot WITH OWNER = sjafoot_user;
-   \c sjafoot
-   CREATE EXTENSION IF NOT EXISTS citext;
-   ```
+    Make sure you have a PostgreSQL server running and create the user and database.
+    ```sql
+    -- In psql
+    CREATE ROLE sjafoot_user WITH LOGIN PASSWORD 'yourpassword';
+    CREATE DATABASE sjafoot WITH OWNER = sjafoot_user;
+    \c sjafoot
+    CREATE EXTENSION IF NOT EXISTS citext;
+    ```
 
-2. **Run Database Migrations**  
+2.  **Run Database Migrations**
 
-   ```bash
-   migrate -database "postgres://sjafoot_user:yourpassword@localhost/sjafoot?sslmode=disable" -path migrations up
-   ```
+    Use the `migrate-cli` to apply the database migrations.
+    ```sh
+    migrate -database "postgres://sjafoot_user:yourpassword@localhost/sjafoot?sslmode=disable" -path migrations up
+    ```
 
-3. **Run the Application**  
+3.  **Run the Application**
 
-   ```bash
-   go run ./cmd/api      -port=4000      -db-dsn="postgres://sjafoot_user:yourpassword@localhost/sjafoot?sslmode=disable"      -jwt-secret="a-very-strong-and-secret-key-that-is-long-and-secure"
-   ```
-
----
-
-## 📡 API Endpoints
-
-Base URL: **`http://localhost:4000`**
-
-### 🔑 Authentication & Users
-
-#### 1. Register a User
-```http
-POST /users
-```
-Creates a new user.  
-✅ Public
-
-**Example Request**
-```bash
-curl -X POST http://localhost:4000/users   -H "Content-Type: application/json"   -d '{"name":"Admin User","email":"admin@example.com","password":"password123"}'
-```
+    Execute the `main.go` file with the required configuration flags.
+    ```sh
+    go run ./cmd/api \
+        -port=4000 \
+        -db-dsn="postgres://sjafoot_user:yourpassword@localhost/sjafoot?sslmode=disable" \
+        -jwt-secret="a-very-strong-and-secret-key-that-is-long-and-secure"
+    ```
 
 ---
+
+## API Endpoints
+
+**Base URL**: `http://localhost:4000`
+
+### Authentication & Users
+
+#### 1. Register a New User
+-   **Endpoint**: `POST /users`
+-   **Description**: Creates a new user in the database for accessing protected endpoints. The first user to register becomes an 'admin'.
+-   **Protection**: Public
+-   **Example Request**:
+    ```sh
+    curl -i -X POST -H "Content-Type: application/json" \
+    -d '{"name": "Admin User", "email": "admin@example.com", "password": "password123"}' \
+    http://localhost:4000/users
+    ```
+-   **Example Response (`201 Created`)**:
+    ```json
+    {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
 
 #### 2. User Login
-```http
-POST /auth/login
-```
-Authenticates a user and returns a JWT.  
-✅ Public
+-   **Endpoint**: `POST /auth/login`
+-   **Description**: Authenticates a user and returns a JWT.
+-   **Protection**: Public
+-   **Example Request**:
+    ```sh
+    curl -i -X POST -H "Content-Type: application/json" \
+    -d '{"email": "admin@example.com", "password": "password123"}' \
+    http://localhost:4000/auth/login
+    ```
+-   **Example Response (`200 OK`)**:
+    ```json
+    {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+    *(For the protected endpoints below, we will store this token in a shell variable)*
+    ```sh
+    TOKEN=$(curl -s -X POST -H "Content-Type: application/json" -d '{"email": "admin@example.com", "password": "password123"}' http://localhost:4000/auth/login | jq -r .token)
+    ```
 
-**Example Request**
-```bash
-curl -X POST http://localhost:4000/auth/login   -H "Content-Type: application/json"   -d '{"email":"admin@example.com","password":"password123"}'
-```
-
----
-
-### 👥 Fans (Torcedores)
+### Torcedores (Fans)
 
 #### 3. Register a Fan
-```http
-POST /torcedores
-```
-Registers a fan to receive notifications.  
-✅ Public
+-   **Endpoint**: `POST /torcedores`
+-   **Description**: Registers a fan to receive notifications for their favorite team.
+-   **Protection**: Public
+-   **Example Request**:
+    ```sh
+    curl -i -X POST -H "Content-Type: application/json" \
+    -d '{"nome": "João Silva", "email": "joao.silva@example.com", "time": "Flamengo"}' \
+    http://localhost:4000/torcedores
+    ```
+-   **Example Response (`201 Created`)**:
+    ```json
+    {
+        "id": 1,
+        "nome": "João Silva",
+        "email": "joao.silva@example.com",
+        "time": "Flamengo",
+        "mensagem": "Cadastro realizado com sucesso"
+    }
+    ```
 
-**Example Request**
-```bash
-curl -X POST http://localhost:4000/torcedores   -H "Content-Type: application/json"   -d '{"nome":"João Silva","email":"joao.silva@example.com","time":"Flamengo"}'
-```
-
----
-
-### 🏆 Championships & Matches
+### Championships & Matches
 
 #### 4. List Championships
-```http
-GET /v1/campeonatos
-```
-Returns available championships.  
-🔒 Protected (JWT Required)
+-   **Endpoint**: `GET /v1/campeonatos`
+-   **Description**: Returns a list of available football championships.
+-   **Protection**: Protected (JWT Required)
+-   **Example Request**:
+    ```sh
+    curl -i -H "Authorization: Bearer $TOKEN" http://localhost:4000/v1/campeonatos
+    ```
+-   **Example Response (`200 OK`)**:
+    ```json
+    [
+        {
+            "id": 2013,
+            "nome": "Campeonato Brasileiro Série A",
+            "temporada": "2025"
+        },
+        {
+            "id": 2001,
+            "nome": "UEFA Champions League",
+            "temporada": "2025"
+        }
+    ]
+    ```
 
-```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:4000/v1/campeonatos
-```
+#### 5. List Matches for a Championship
+-   **Endpoint**: `GET /v1/campeonatos/{id}/partidas`
+-   **Description**: Returns a list of matches for a given championship ID.
+-   **Protection**: Public (as currently implemented)
+-   **Example Request**:
+    ```sh
+    # Get matches for Campeonato Brasileiro (ID 2013)
+    curl -i http://localhost:4000/v1/campeonatos/2013/partidas
+    ```
+-   **Example Response (`200 OK`)**:
+    ```json
+    {
+        "rodada": 0,
+        "partidas": [
+            {
+                "time_casa": "Flamengo",
+                "time_fora": "Palmeiras",
+                "placar": "2-1"
+            },
+            ...
+        ]
+    }
+    ```
 
----
-
-#### 5. List Matches
-```http
-GET /v1/campeonatos/{id}/partidas
-```
-Returns matches for a given championship.  
-✅ Public
-
-```bash
-curl http://localhost:4000/v1/campeonatos/2013/partidas
-```
-
----
-
-### 📢 Broadcasts
+### Broadcast
 
 #### 6. Send Broadcast
-```http
-POST /broadcast
-```
-Sends a notification to fans of a team.  
-🔒 Protected (JWT Required) 
-   The broadcast endpoint can be used only for admin that is the first user being created at the endpoint /user
-```bash
-curl -X POST http://localhost:4000/broadcast   -H "Authorization: Bearer $TOKEN"   -H "Content-Type: application/json"   -d '{"tipo":"inicio","time":"Flamengo","mensagem":"O jogo vai começar!"}'
-```
----
+-   **Endpoint**: `POST /broadcast`
+-   **Description**: Sends a notification to all fans registered for a specific team. Requires an 'admin' role. The notification is simulated by logging to the server console.
+-   **Protection**: Protected (Admin JWT Required)
+-   **Example Request**:
+    ```sh
+    curl -i -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{"tipo": "inicio", "time": "Flamengo", "mensagem": "O jogo vai começar!"}' \
+    http://localhost:4000/broadcast
+    ```
+-   **Example Response (`200 OK`)**:
+    ```json
+    {
+        "status": "broadcast initiated",
+        "team": "Flamengo",
+        "event_type": "inicio",
+        "notified_fans": 2
+    }
+    ```
 
-### 🩺 System
+### System
 
 #### 7. Health Check
-```http
-GET /v1/healthcheck
-```
-Returns API status.  
-✅ Public
-
-```bash
-curl http://localhost:4000/v1/healthcheck
-```
-
----
-
-## 📌 Project Status
-
-✔️ MVP completed  
-🚧 Future improvements: WebSocket support, email notifications, admin panel  
+-   **Endpoint**: `GET /v1/healthcheck`
+-   **Description**: Provides the status of the API.
+-   **Protection**: Public
+-   **Example Request**:
+    ```sh
+    curl -i http://localhost:4000/v1/healthcheck
+    ```
+-   **Example Response (`200 OK`)**:
+    ```json
+    {
+        "status": "available",
+        "environment": "development",
+        "version": "1.0.0"
+    }
+    ```
